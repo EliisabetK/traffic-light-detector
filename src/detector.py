@@ -1,58 +1,62 @@
-# detector.py
 import tensorflow as tf
 import numpy as np
 import os
+import cv2
 from tensorflow.keras.preprocessing import image
 
-# Load the trained model
-model = tf.keras.models.load_model('traffic_light_detector.h5')
+model = tf.keras.models.load_model('final_traffic_light_detector.keras')
 
-# Define the class labels based on your model's output
 class_labels = ['green', 'red', 'yellow']
 
 def predict_traffic_light(img_path):
-    # Load and preprocess the image
-    img = image.load_img(img_path, target_size=(64, 64))  # Resize to match the input shape
-    img_array = image.img_to_array(img) / 255.0  # Normalize the image
-    img_array = np.expand_dims(img_array, axis=0)  # Add batch dimension
+    img = image.load_img(img_path, target_size=(128, 128))
+    img_array = image.img_to_array(img) / 255.0 
+    img_array = np.expand_dims(img_array, axis=0)
 
-    # Make prediction
     predictions = model.predict(img_array)
     predicted_class = class_labels[np.argmax(predictions)]
 
     return predicted_class
 
-def test_on_folder(folder_path):
+def add_noise(image, noise_level=0.2):
+    noise = np.random.normal(0, noise_level, image.shape)
+    noisy_image = np.clip(image + noise, 0, 1)
+    return noisy_image
+
+
+def adjust_brightness(image, factor=1.0):
+    return np.clip(image * factor, 0, 1)
+
+def test_on_folder(folder_path, modify_func=None, modification_name=""):
     total_images = 0
     correct_predictions = 0
-    # Iterate through each class folder (green, red, yellow)
     for class_label in os.listdir(folder_path):
         class_folder = os.path.join(folder_path, class_label)
 
-        # Check if it's a directory
         if os.path.isdir(class_folder):
-            print(f"\nTesting images in '{class_label}' folder:")
 
-            # Iterate through each image in the class folder
             for img_name in os.listdir(class_folder):
                 img_path = os.path.join(class_folder, img_name)
+                img = image.load_img(img_path, target_size=(128, 128))
+                img_array = image.img_to_array(img) / 255.0
 
-                # Predict the traffic light color
-                predicted_color = predict_traffic_light(img_path)
+                if modify_func:
+                    img_array = modify_func(img_array)
 
-                # Print the result
-                print(f"Image: {img_name} | Actual: {class_label} | Predicted: {predicted_color}")
+                img_array = np.expand_dims(img_array, axis=0)
+                predictions = model.predict(img_array)
+                predicted_color = class_labels[np.argmax(predictions)]
 
-                # Update accuracy calculation
                 total_images += 1
                 if predicted_color == class_label:
                     correct_predictions += 1
 
-    # Calculate and print accuracy
     accuracy = (correct_predictions / total_images) * 100
-    print(f"\nAccuracy on test dataset: {accuracy:.2f}% ({correct_predictions}/{total_images})")
+    print(f"\nAccuracy on test dataset with {modification_name}: {accuracy:.2f}% ({correct_predictions}/{total_images})")
+
 if __name__ == "__main__":
-    # Path to test folder
     test_folder_path = 'data/test'
     test_on_folder(test_folder_path)
-
+    test_on_folder(test_folder_path, add_noise, "Noise Addition")
+    test_on_folder(test_folder_path, lambda img: adjust_brightness(img, 0.5), "Dimmed")
+    test_on_folder(test_folder_path, lambda img: adjust_brightness(img, 1.5), "Brightened")

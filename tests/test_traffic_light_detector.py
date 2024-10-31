@@ -2,12 +2,12 @@ import unittest
 import cv2
 import numpy as np
 import os
-from src.detector import detect
+from main import detect 
 
 class TestDetectFunction(unittest.TestCase):
 
     def setUp(self):
-        self.dataset_path = "data\images"
+        self.dataset_path = "../light"
         self.image_files = [f for f in os.listdir(self.dataset_path) if f.endswith('.jpg') or f.endswith('.png')]
 
     def add_noise(self, image):
