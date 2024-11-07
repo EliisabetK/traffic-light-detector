@@ -4,7 +4,7 @@ import os
 import cv2
 from tensorflow.keras.preprocessing import image
 
-model = tf.keras.models.load_model('final_traffic_light_detector.keras')
+model = tf.keras.models.load_model('traffic_light_detector.keras')
 
 class_labels = ['green', 'red', 'yellow']
 
